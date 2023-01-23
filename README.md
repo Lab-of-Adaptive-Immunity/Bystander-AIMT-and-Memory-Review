@@ -29,6 +29,6 @@ MIT License for more details.
 
 3.) Dowload file at the bottom of the page with this name: GSE90522_counts.tsv.gz
 
-4.) Unpack it in cloned directory. You should have  GSE90522_counts.tsv
+4.) Unpack it in cloned directory. You should have  GSE90522_counts.tsv.
 
-5.) Now run the above script (named DESeq_proc_GSE90522_data.Rmd)
+5.) Now run the above script (named DESeq_proc_GSE90522_data.Rmd).
