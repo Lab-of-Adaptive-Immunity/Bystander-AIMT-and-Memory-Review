@@ -1,0 +1,138 @@
+---
+title: "DESeq heatmap GSE90522"
+author: "Juraj Michalik"
+date: "2022-11-26"
+output: html_document
+---
+
+------------------------------------------
+
+LICENSE: MIT License for provided scripts.
+
+All scripts are distributed to ease the building of the Atlas, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the MIT License for more details.
+
+------------------------------------------
+
+This script is used to load data from project from GEO NCBI GSE90522.
+Requirements: DESeq2 and all R-packages below. R version was 4.2.1. Please be sure to install them before running this script.
+R version 4.2.1.
+
+Also, please go to this page and download count table: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE90522 (GSE90522_counts.tsv.gz file at the bottom of the page).
+Unpack it. Name should be 'GSE90522_counts.tsv'. The file should be in same directory as this script.
+
+```{r, include=FALSE}
+library(DESeq2)
+library(pheatmap)
+library(dplyr)
+library(gplots)
+
+library(biomaRt)
+library(AnnotationHub)
+```
+
+Functions for annotations.
+
+```{r}
+# adds annotation to object
+# Get current Mus Musculus database from AnnotationHub if not downloaded already
+getEnsMm102 <- function(){
+  aHu <- AnnotationHub()
+  aHuQuery <- query(aHu, pattern = c("Mus Musculus", "EnsDb", '102'))
+  EnsMm102 <- aHuQuery[[1]]
+  return(EnsMm102)
+}
+
+entreid2symbols <- function(entrezids){
+  EnsMm102 <- getEnsMm102()
+  symbol.vector <- mapIds(EnsMm102,
+                          keys = entrezids,
+                          column = "SYMBOL",
+                          keytype = "ENTREZID",
+                          multiVals = "first")
+  # rename only if symbol is a thing
+  symbols.vector <- ifelse(is.na(symbol.vector), entrezids, symbol.vector)
+  return(symbols.vector)    
+}
+```
+
+Make meta data.
+
+```{r}
+cols.data <- data.frame(Sample_ID = paste('Sample', seq(1, 11, 1), sep = '.'),
+                        Description = c('Naïve CD8 T cells sample 1',
+                                        'Virtual memory CD8 T cells sample 1',
+                                        'Naïve CD8 T cells sample 2',
+                                        'Virtual memory CD8 T cells sample 2',
+                                        'Naïve CD8 T cells sample 3',
+                                        'Virtual memory CD8 T cells sample 3',
+                                        'Naïve CD8 T cells sample 4',
+                                        'Virtual memory CD8 T cells sample 4',
+                                        'True memory CD8 T cells sample 1',
+                                        'True memory CD8 T cells sample 2',
+                                        'True memory CD8 T cells sample 3'),
+                        Cell.type = c('Naïve', 'Virtual memory', 'Naïve', 'Virtual memory', 'Naïve', 'Virtual memory', 'Naïve', 'Virtual memory',
+                                      'True memory', 'True memory', 'True memory'))
+```
+
+Count matrix.
+
+```{r}
+count.matrix <- read.csv('GSE90522_counts.tsv', sep = '\t', row.names = 1)
+```
+
+Row data. This includes translation from ENTREZ to Gene symbol.
+
+```{r}
+row.data <- count.matrix[,1,drop=F]
+count.matrix <- count.matrix[,-1]
+```
+
+Biomart to add Symbols to row.data.
+
+```{r}
+row.data$symbols <- entreid2symbols(rownames(row.data))
+```
+
+Check if demanded genes are in there.
+
+```{r}
+c('Klrk1', 'Ccr5', 'Gcnt1', 'Itga4', 'Il12rb1', 'Il18r1', 'Il18rap') %in% row.data$symbols
+```
+
+Now create DESeq object, with cell type as variable of interest in design.
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = count.matrix,
+                              colData = cols.data,
+                              rowData = row.data,
+                              design= ~ Cell.type)
+
+rownames(dds) <- row.data$symbols
+```
+
+This is not needed, just test.
+
+```{r}
+dds <- DESeq(dds)
+```
+
+Perform vst (variance stabilizing transformation).
+
+```{r}
+vst <- vst(dds, blind=FALSE)
+```
+
+Draw desired heatmap.
+
+```{r}
+png('GSE90522_Heatmap.png', width = 720, height = 480)
+
+subassay.vst <- assay(vst)[c('Klrk1', 'Il12rb1', 'Il18r1', 'Il18rap', 'Gcnt1', 'Itga4', 'Ccr5'),]
+colfunc <- colorRampPalette(c("blue", "gray90", "red"))
+
+pheatmap(subassay.vst, border = 'NA', scale = 'row', color=colfunc(64), cluster_rows = F,
+         annotation_col = as.data.frame(colData(dds)['Cell.type']),
+         main='Heatmap of selected genes for \n True Memory, Virtual Memory and Naïve cells', cex = 1.15 )
+
+dev.off()
+```
