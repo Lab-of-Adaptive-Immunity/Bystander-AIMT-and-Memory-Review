@@ -19,10 +19,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 MIT License for more details.
 
-Used data sets belong to 10X Genomics and are distributed
-under Creative Commons license. See https://support.10xgenomics.com/ 
-for detailed information.
-
 #########################################################
 ## Manual                           
 #########################################################
