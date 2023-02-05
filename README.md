@@ -4,7 +4,7 @@
 
 #########################################################
 
-A readme for script that generates heatmap for review of Paprckova et *al.* at:
+A readme for script that generates heatmap from data with ascension number GSE90522 for review of Paprckova et *al.* at:
  LINK COMING SOON 
   
 
